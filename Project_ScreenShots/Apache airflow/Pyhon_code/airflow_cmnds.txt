@@ -1,0 +1,9 @@
+nano ~/.bashrc
+source airflow-env/bin/activate
+airflow webserver --port 8080 -D
+
+airflow scheduler -D
+
+cat airflow-scheduler.pid | xargs kill -9
+
+cat airflow-webserver.pid | xargs kill -9
