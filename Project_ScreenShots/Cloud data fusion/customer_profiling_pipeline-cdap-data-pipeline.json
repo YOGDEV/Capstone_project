@@ -1,0 +1,303 @@
+{
+    "name": "customer_profiling_pipeline",
+    "description": "Data Pipeline Application",
+    "artifact": {
+        "name": "cdap-data-pipeline",
+        "version": "6.9.2",
+        "scope": "SYSTEM"
+    },
+    "config": {
+        "resources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "driverResources": {
+            "memoryMB": 2048,
+            "virtualCores": 1
+        },
+        "connections": [
+            {
+                "from": "Customer",
+                "to": "Joiner"
+            },
+            {
+                "from": "Joiner",
+                "to": "Joiner2"
+            },
+            {
+                "from": "Joiner2",
+                "to": "Group By"
+            },
+            {
+                "from": "Group By",
+                "to": "BigQuery"
+            },
+            {
+                "from": "Purchase",
+                "to": "Joiner"
+            },
+            {
+                "from": "Product",
+                "to": "Joiner2"
+            }
+        ],
+        "comments": [],
+        "postActions": [],
+        "properties": {},
+        "processTimingEnabled": true,
+        "stageLoggingEnabled": false,
+        "stages": [
+            {
+                "name": "Customer",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Customer",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.22.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "useConnection": "true",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "referenceName": "cap_bucket.customer_profile_dataset.csv",
+                        "path": "gs://cap_bucket/customer_profile_dataset.csv",
+                        "format": "csv",
+                        "sampleSize": "1000",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "ignoreNonExistingFolders": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"}]}",
+                        "enableQuotedValues": "false",
+                        "skipHeader": "true"
+                    }
+                },
+                "outputSchema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"}]}",
+                "id": "Customer"
+            },
+            {
+                "name": "Joiner",
+                "plugin": {
+                    "name": "Joiner",
+                    "type": "batchjoiner",
+                    "label": "Joiner",
+                    "artifact": {
+                        "name": "core-plugins",
+                        "version": "2.11.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "selectedFields": "Customer.customer_id as customer_id,Customer.first_name as first_name,Customer.last_name as last_name,Customer.gender as gender,Customer.date_of_birth as date_of_birth,Customer.email as email,Customer.phone_number as phone_number,Customer.signup_date as signup_date,Customer.address as address,Customer.city as city,Customer.state as state,Customer.zip_code as zip_code,Purchase.purchase_id as purchase_id,Purchase.customer_id as customer_id1,Purchase.product_id as product_id,Purchase.purchase_date as purchase_date,Purchase.quantity as quantity,Purchase.total_amount as total_amount",
+                        "requiredInputs": "Customer,Purchase",
+                        "conditionType": "basic",
+                        "joinKeys": "Customer.customer_id = Purchase.customer_id",
+                        "joinNullKeys": "true",
+                        "distributionEnabled": "false",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Customer",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"}]}"
+                    },
+                    {
+                        "name": "Purchase",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}"
+                    }
+                ],
+                "id": "Joiner"
+            },
+            {
+                "name": "Joiner2",
+                "plugin": {
+                    "name": "Joiner",
+                    "type": "batchjoiner",
+                    "label": "Joiner2",
+                    "artifact": {
+                        "name": "core-plugins",
+                        "version": "2.11.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "selectedFields": "Joiner.customer_id as customer_id,Joiner.first_name as first_name,Joiner.last_name as last_name,Joiner.gender as gender,Joiner.date_of_birth as date_of_birth,Joiner.email as email,Joiner.phone_number as phone_number,Joiner.signup_date as signup_date,Joiner.address as address,Joiner.city as city,Joiner.state as state,Joiner.zip_code as zip_code,Joiner.purchase_id as purchase_id,Joiner.customer_id1 as customer_id1,Joiner.product_id as product_id,Joiner.purchase_date as purchase_date,Joiner.quantity as quantity,Joiner.total_amount as total_amount,Product.product_id as product_id1,Product.product_name as product_name,Product.category as category,Product.price_per_unit as price_per_unit,Product.brand as brand",
+                        "requiredInputs": "Joiner,Product",
+                        "conditionType": "basic",
+                        "joinKeys": "Joiner.product_id = Product.product_id",
+                        "joinNullKeys": "false",
+                        "distributionEnabled": "false",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"},{\"name\":\"product_id1\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"},{\"name\":\"product_id1\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Joiner",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}"
+                    },
+                    {
+                        "name": "Product",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "id": "Joiner2"
+            },
+            {
+                "name": "Group By",
+                "plugin": {
+                    "name": "GroupByAggregate",
+                    "type": "batchaggregator",
+                    "label": "Group By",
+                    "artifact": {
+                        "name": "core-plugins",
+                        "version": "2.11.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "groupByFields": "customer_id,first_name,last_name,gender,date_of_birth,email,phone_number,address,city,state,zip_code,signup_date",
+                        "aggregates": "total_purchases:CountDistinct(purchase_id),product_names:CollectList(product_name),purchased_category:CollectList(category),purchased_brand:CollectList(brand),quantity_purchased:Sum(quantity),total_spend:Sum(total_amount)"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typetypeoutput.agg\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"total_purchases\",\"type\":\"int\"},{\"name\":\"product_names\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_category\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_brand\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"quantity_purchased\",\"type\":\"int\"},{\"name\":\"total_spend\",\"type\":\"double\"}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Joiner2",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typeoutput\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id1\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"},{\"name\":\"product_id1\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}"
+                    }
+                ],
+                "id": "Group-By"
+            },
+            {
+                "name": "BigQuery",
+                "plugin": {
+                    "name": "BigQueryTable",
+                    "type": "batchsink",
+                    "label": "BigQuery",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.22.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "useConnection": "true",
+                        "connection": "${conn(BigQuery Default)}",
+                        "referenceName": "bigqueryload",
+                        "dataset": "demo_dataset",
+                        "table": "Unified_customer_profile",
+                        "operation": "insert",
+                        "truncateTable": "false",
+                        "allowSchemaRelaxation": "true",
+                        "location": "US",
+                        "createPartitionedTable": "false",
+                        "partitioningType": "TIME",
+                        "partitionFilterRequired": "false",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typetypeoutput.agg\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"total_purchases\",\"type\":\"int\"},{\"name\":\"product_names\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_category\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_brand\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"quantity_purchased\",\"type\":\"int\"},{\"name\":\"total_spend\",\"type\":\"double\"}]}"
+                    }
+                },
+                "outputSchema": [
+                    {
+                        "name": "etlSchemaBody",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typetypeoutput.agg\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"total_purchases\",\"type\":\"int\"},{\"name\":\"product_names\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_category\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_brand\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"quantity_purchased\",\"type\":\"int\"},{\"name\":\"total_spend\",\"type\":\"double\"}]}"
+                    }
+                ],
+                "inputSchema": [
+                    {
+                        "name": "Group By",
+                        "schema": "{\"type\":\"record\",\"name\":\"join.typetypeoutput.agg\",\"fields\":[{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"first_name\",\"type\":\"string\"},{\"name\":\"last_name\",\"type\":\"string\"},{\"name\":\"gender\",\"type\":\"string\"},{\"name\":\"date_of_birth\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"phone_number\",\"type\":\"string\"},{\"name\":\"address\",\"type\":\"string\"},{\"name\":\"city\",\"type\":\"string\"},{\"name\":\"state\",\"type\":\"string\"},{\"name\":\"zip_code\",\"type\":\"int\"},{\"name\":\"signup_date\",\"type\":\"string\"},{\"name\":\"total_purchases\",\"type\":\"int\"},{\"name\":\"product_names\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_category\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"purchased_brand\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"quantity_purchased\",\"type\":\"int\"},{\"name\":\"total_spend\",\"type\":\"double\"}]}"
+                    }
+                ],
+                "id": "BigQuery"
+            },
+            {
+                "name": "Purchase",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Purchase",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.22.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "useConnection": "true",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "referenceName": "cap_bucket.purchase_history_dataset.csv",
+                        "path": "gs://cap_bucket/purchase_history_dataset.csv",
+                        "format": "csv",
+                        "sampleSize": "1000",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "ignoreNonExistingFolders": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}",
+                        "enableQuotedValues": "false",
+                        "skipHeader": "true"
+                    }
+                },
+                "outputSchema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"purchase_id\",\"type\":\"int\"},{\"name\":\"customer_id\",\"type\":\"int\"},{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"purchase_date\",\"type\":\"string\"},{\"name\":\"quantity\",\"type\":\"int\"},{\"name\":\"total_amount\",\"type\":\"double\"}]}",
+                "id": "Purchase"
+            },
+            {
+                "name": "Product",
+                "plugin": {
+                    "name": "GCSFile",
+                    "type": "batchsource",
+                    "label": "Product",
+                    "artifact": {
+                        "name": "google-cloud",
+                        "version": "0.22.2",
+                        "scope": "SYSTEM"
+                    },
+                    "properties": {
+                        "useConnection": "true",
+                        "connection": "${conn(Cloud Storage Default)}",
+                        "referenceName": "cap_bucket.products_dataset.csv",
+                        "path": "gs://cap_bucket/products_dataset.csv",
+                        "format": "csv",
+                        "sampleSize": "1000",
+                        "filenameOnly": "false",
+                        "recursive": "false",
+                        "ignoreNonExistingFolders": "false",
+                        "encrypted": "false",
+                        "fileEncoding": "UTF-8",
+                        "schema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}",
+                        "enableQuotedValues": "false",
+                        "skipHeader": "true"
+                    }
+                },
+                "outputSchema": "{\"type\":\"record\",\"name\":\"text\",\"fields\":[{\"name\":\"product_id\",\"type\":\"int\"},{\"name\":\"product_name\",\"type\":\"string\"},{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"price_per_unit\",\"type\":\"double\"},{\"name\":\"brand\",\"type\":\"string\"}]}",
+                "id": "Product"
+            }
+        ],
+        "schedule": "0 1 */1 * *",
+        "engine": "spark",
+        "numOfRecordsPreview": 100,
+        "rangeRecordsPreview": {
+            "min": 1,
+            "max": "5000"
+        },
+        "maxConcurrentRuns": 1
+    },
+    "version": "56bd9733-fb38-11ee-9a58-169426f974ef"
+}
